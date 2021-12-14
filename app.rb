@@ -1,38 +1,27 @@
+# frozen_string_literal: true
+
 require_relative 'middleware/all_time'
 
 class App
+  def call(env)
+    @request = Rack::Request.new(env)
 
-    def call(env)
-
-      request = Rack::Request.new(env)
-
-      if request.path != '/time' || request.params["format"].nil?
-        [404, headers, body]
-      else
-
-        time = AllTime.new(request.params["format"])
-
-        if time.check_invalid?
-          body = time.create_format
-          [status, headers, body]
-        else
-          body = ["Unknown time format #{time.check_invalid_params}"]
-          [400, headers, body]
-        end
-      end
+    if @request.params['format'].nil?
+      [404, {}, ['Empty format']]
+    else
+      create_time
     end
+  end
 
-    private
+  def create_time
+    time = AllTime.new(@request.params['format'])
 
-    def status
-      200
+    if time.check_invalid?
+      body = time.create_format
+      Rack::Response.new(body).finish
+    else
+      body = ["Unknown time format #{time.invalid_params}"]
+      [400, {}, body]
     end
-
-    def headers
-      {'Content-Type' => 'text/plain'}
-    end
-
-    def body
-      ["Unknown url or format"]
-    end 
+  end
 end
